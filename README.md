@@ -3,11 +3,11 @@
 
 ## Project setup
 ```
-# Install dependencies.
-$ npm install
-
 # Configure environment.
 $ cd neronUI
+
+# Install dependencies.
+$ npm install
 
 # Copy local dev environment file, and edit it to suite your requirements.
 $ cp .env.development.local.example .env.development.local
