@@ -1,14 +1,13 @@
 # neronUI
  A user interface for Neron Technologies 3d printers
 
-
 ## Project setup
 ```
 # Install dependencies.
 $ npm install
 
 # Configure environment.
-$ cd fluidd
+$ cd neronUI
 
 # Copy local dev environment file, and edit it to suite your requirements.
 $ cp .env.development.local.example .env.development.local
