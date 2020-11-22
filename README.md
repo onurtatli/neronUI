@@ -2,7 +2,8 @@
  A user interface for Neron Technologies 3d printers
 
 
-Project setup
+## Project setup
+```
 # Install dependencies.
 $ npm install
 
@@ -27,3 +28,4 @@ $ npm run test:e2e
 
 # Lint and fix files
 $ npm run link
+```
