@@ -62,7 +62,7 @@ export default {
 					if (value.target) color = colorHot
 
 					if(nameSplit[0].startsWith("extruder")) {
-						let min_extrude_temp = key in state.configfile.config ? parseFloat(state.configfile.config[key].min_extrude_temp) : 170
+						let min_extrude_temp = key in state.configfile.config && 'min_extrude_temp' in state.configfile.config[key] ? parseFloat(state.configfile.config[key].min_extrude_temp) : 170
 						if (value.temperature >= min_extrude_temp) icon = "printer-3d-nozzle"
 					} else if (nameSplit[0] === "heater_bed") {
 						icon = "radiator-disabled"
@@ -226,6 +226,28 @@ export default {
 		return sensors.sort(caseInsensitiveNameSort)
 	},
 
+	getBedMeshProfiles: state => {
+		let profiles = [];
+		let currentProfile = "";
+		if (state.bed_mesh) {
+			currentProfile = state.bed_mesh.profile_name;
+		}
+
+		for (let [key, value] of Object.entries(state.configfile.config)) {
+			let nameSplit = key.split(" ");
+
+			if (nameSplit.length > 1 && nameSplit[0] === "bed_mesh" && nameSplit[1] !== undefined) {
+				profiles.push({
+					name: nameSplit[1],
+					data: value,
+					is_active: (currentProfile === nameSplit[1]),
+				});
+			}
+		}
+
+		return profiles.sort(caseInsensitiveNameSort);
+	},
+
 	getExtrudePossible: state => {
 		if ("toolhead" in state) {
 			let extruderName = state.toolhead.extruder;
@@ -243,34 +265,34 @@ export default {
 
 	existPrinterConfig: state => {
 		if (
-			typeof(state.printer.configfile.config) === "object" &&
-			Object.keys(state.printer.configfile.config).length > 0
+			typeof(state.configfile.config) === "object" &&
+			Object.entries(state.configfile.config).length > 1
 		) return true;
 
 		return false;
 	},
 
 	checkConfigVirtualSdcard: state => {
-		return 'virtual_sdcard' in state.printer.configfile.config;
+		return 'virtual_sdcard' in state.configfile.config;
 	},
 
 	checkConfigPauseResume: state => {
-		return 'pause_resume' in state.printer.configfile.config;
+		return 'pause_resume' in state.configfile.config;
 	},
 
 	checkConfigDisplayStatus: state => {
-		return 'display_status' in state.printer.configfile.config;
+		return 'display_status' in state.configfile.config;
 	},
 
 	checkConfigMacroPause: state => {
-		return Object.keys(state.printer.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro pause') !== -1;
+		return Object.keys(state.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro pause') !== -1;
 	},
 
 	checkConfigMacroResume: state => {
-		return Object.keys(state.printer.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro resume') !== -1;
+		return Object.keys(state.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro resume') !== -1;
 	},
 
 	checkConfigMacroCancel: state => {
-		return Object.keys(state.printer.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro cancel_print') !== -1;
+		return Object.keys(state.configfile.config).findIndex(key => key.toLowerCase() === 'gcode_macro cancel_print') !== -1;
 	},
 }

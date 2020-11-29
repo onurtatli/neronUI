@@ -9,15 +9,13 @@
             !boolMacroResume ||
             !boolMacroCancelPrint
         ">
-        <v-list-item>
-            <v-list-item-avatar color="grey">
-                <v-icon dark>mdi-alert-circle</v-icon>
-            </v-list-item-avatar>
-            <v-list-item-content>
-                <v-list-item-title class="headline">Missing configuration</v-list-item-title>
-            </v-list-item-content>
-        </v-list-item>
-        <v-divider class="my-2" ></v-divider>
+        <v-toolbar flat dense>
+            <v-toolbar-title>
+                    <span class="subheading">
+                        <v-icon class="mdi mdi-alert-circle" left></v-icon>Missing configuration
+                    </span>
+            </v-toolbar-title>
+        </v-toolbar>
         <v-card-text class="px-0 pt-0 pb-2 content">
             <v-layout wrap class=" text-center">
                 <v-flex col class="text-left">
@@ -27,6 +25,7 @@
                     <p v-if="!boolMacroPause"><code>gcode_macro PAUSE</code> is not defined in config.</p>
                     <p v-if="!boolMacroResume"><code>gcode_macro RESUME</code> is not defined in config.</p>
                     <p v-if="!boolMacroCancelPrint"><code>gcode_macro CANCEL_PRINT</code> is not defined in config.</p>
+                    <p class="mb-0"><a href="https://meteyou.github.io/mainsail/necessary-configuration" target="_blank">Here you will find more information.</a></p>
                 </v-flex>
             </v-layout>
         </v-card-text>

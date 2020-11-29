@@ -5,6 +5,10 @@
     .button-min-width-auto {
         min-width: auto !important;
     }
+
+    #page-container {
+        max-width: 1400px;
+    }
 </style>
 
 <template>
@@ -83,7 +87,7 @@
 
         <v-main id="content">
             <v-scroll-y-transition>
-                <v-container fluid id="page-container" class="container px-sm-6 px-3">
+                <v-container fluid id="page-container" class="container px-sm-6 px-3 mx-auto">
                     <keep-alive>
                         <router-view></router-view>
                     </keep-alive>
@@ -186,7 +190,6 @@ export default {
             let favicon16 = document.querySelector("link[rel*='icon'][sizes='16x16']")
             let favicon32 = document.querySelector("link[rel*='icon'][sizes='32x32']")
 
-
             if (val > 0 && val < 100) {
                 let faviconSize = 64;
 
@@ -234,7 +237,7 @@ export default {
         }
     },
     watch: {
-        current_file_position() {
+        print_percent() {
             this.drawFavicon(this.print_percent);
         },
         current_file: {
