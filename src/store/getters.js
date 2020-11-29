@@ -13,7 +13,7 @@ export default {
             return state.gui.general.printername ? state.gui.general.printername : state.printer.hostname
         }
 
-        return "Mainsail"
+        return "NEronUI"
     },
 
     is_printing: state => {

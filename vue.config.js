@@ -25,15 +25,15 @@ module.exports = {
       msTileImage: 'img/icons/mstile-150x150.png'
     },
     manifestPath: 'manifest.json',
-    name: 'Mainsail',
+    name: 'NeronUI',
     themeColor: '#121212',
     msTileColor: '#121212',
     appleMobileWebAppCapable: 'yes',
     appleMobileWebAppStatusBarStyle: 'black',
 
     manifestOptions: {
-      "short_name": "Mainsail",
-      "name": "Mainsail",
+      "short_name": "NeronUI",
+      "name": "NeronUI",
       "start_url": "/",
       "display": "standalone",
       "theme_color": "#D51F26",

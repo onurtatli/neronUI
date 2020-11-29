@@ -6,7 +6,7 @@ has_children: false
 permalink: /necessary-configuration
 ---
 
-Mainsail requires a minimum configuration to function properly. It should give you a warning at startup if the required parts are not found in your configuration.
+NEronUI requires a minimum configuration to function properly. It should give you a warning at startup if the required parts are not found in your configuration.
 
 ## Required configuration
 ### virtual_sdcard
@@ -23,7 +23,7 @@ This is required for messages in your status panel, if you don't have a `[displa
 ```
 
 ### pause / resume / cancel
-This enables pause / resume in mainsail.
+This enables pause / resume in NEronUI.
 
 ```yaml
 [pause_resume]
