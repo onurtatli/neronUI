@@ -21,3 +21,30 @@ export function caseInsensitiveNameSort(a, b) {
 
     return 0;
 }
+
+export function colorConsoleMessage(item) {
+    if (item.message.startsWith('!! ')) return "red--text"
+    if ('type' in item && item.type === 'command') return "blue--text"
+
+    return '';
+}
+
+export function formatConsoleMessage(message) {
+    message = message.replaceAll('!! ', '')
+    message = message.replaceAll('// ', '')
+    message = message.replace('\n// ', '<br>')
+    message = message.replace(/(?:\r\n|\r|\n)/g, '<br>')
+
+    return message;
+}
+
+export function convertName(name) {
+    let output = ""
+    name = name.replaceAll("_", " ")
+    name.split(" ").forEach(split => {
+        output += " "+split.charAt(0).toUpperCase() + split.slice(1)
+    })
+    output = output.slice(1)
+
+    return output;
+}

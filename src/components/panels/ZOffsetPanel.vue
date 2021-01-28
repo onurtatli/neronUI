@@ -10,24 +10,26 @@
             </v-toolbar-title>
         </v-toolbar>
 
-        <v-card-text class="py-1">
-            <v-row class="">
-                <v-col class="col-12 pb-0 text-center">
-                    <p>Current Offset: {{ homing_origin.length > 1 ? homing_origin[2].toFixed(2) : 0.00 }}mm</p>
-                </v-col>
-            </v-row>
-            <v-row>
-                <v-col class="col-12 pt-0 text-center d-flex flex-column align-center flex-sm-row justify-center">
-                    <v-btn-toggle dense no-gutters class="mx-2 mb-2 order-last flex-nowrap order-sm-first" >
-                        <v-btn small @click="sendBabySteppingDownFine()" class="" :loading="loadings.includes('babySteppingDownFine')" ><v-icon small class="mr-2">mdi-arrow-collapse-down</v-icon> -0.01mm</v-btn>
-                        <v-btn small @click="sendBabySteppingDown()" class="" :loading="loadings.includes('babySteppingDown')" >-0.05mm</v-btn>
-                    </v-btn-toggle>
-                    <v-btn-toggle dense no-gutters class="mx-2 mb-2 order-first flex-nowrap order-sm-last" >
-                        <v-btn small @click="sendBabySteppingUpFine()" class="" :loading="loadings.includes('babySteppingUpFine')" ><v-icon small class="mr-2">mdi-arrow-expand-up</v-icon> +0.01mm</v-btn>
-                        <v-btn small @click="sendBabySteppingUp()" class="" :loading="loadings.includes('babySteppingUp')" >+0.05mm</v-btn>
-                    </v-btn-toggle>
-                </v-col>
-            </v-row>
+        <v-card-text class="px-0 py-0">
+            <v-container>
+                <v-row class="py-0">
+                    <v-col class="col text-center">
+                        <p class="mb-0">Current Offset: {{ homing_origin.length > 1 ? homing_origin[2].toFixed(2) : 0.00 }}mm</p>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col class="col text-center d-flex flex-column align-center flex-sm-row justify-center">
+                        <v-btn-toggle dense no-gutters class="mx-2 mt-3 mt-sm-0 order-last flex-nowrap order-sm-first" >
+                            <v-btn small @click="sendBabySteppingDownFine()" class="" :loading="loadings.includes('babySteppingDownFine')" ><v-icon small class="mr-2">mdi-arrow-collapse-down</v-icon> -0.01mm</v-btn>
+                            <v-btn small @click="sendBabySteppingDown()" class="" :loading="loadings.includes('babySteppingDown')" >-0.05mm</v-btn>
+                        </v-btn-toggle>
+                        <v-btn-toggle dense no-gutters class="mx-2 order-first flex-nowrap order-sm-last" >
+                            <v-btn small @click="sendBabySteppingUpFine()" class="" :loading="loadings.includes('babySteppingUpFine')" ><v-icon small class="mr-2">mdi-arrow-expand-up</v-icon> +0.01mm</v-btn>
+                            <v-btn small @click="sendBabySteppingUp()" class="" :loading="loadings.includes('babySteppingUp')" >+0.05mm</v-btn>
+                        </v-btn-toggle>
+                    </v-col>
+                </v-row>
+            </v-container>
         </v-card-text>
     </v-card>
 </template>
@@ -57,25 +59,25 @@
             sendBabySteppingDownFine() {
                 let gcode = "SET_GCODE_OFFSET Z_ADJUST=-0.01"+(this.homed_axis === "xyz" ? " MOVE=1" : "");
                 this.$store.commit('socket/addLoading', { name: 'babySteppingDownFine' });
-                this.$store.commit('server/addEvent', gcode);
+                this.$store.commit('server/addEvent', { message: gcode, type: 'command' });
                 Vue.prototype.$socket.sendObj('printer.gcode.script', { script: gcode }, "socket/removeLoading", { name: 'babySteppingDownFine' });
             },
             sendBabySteppingDown() {
                 let gcode = "SET_GCODE_OFFSET Z_ADJUST=-0.05"+(this.homed_axis === "xyz" ? " MOVE=1" : "");
                 this.$store.commit('socket/addLoading', { name: 'babySteppingDown' });
-                this.$store.commit('server/addEvent', gcode);
+                this.$store.commit('server/addEvent', { message: gcode, type: 'command' });
                 Vue.prototype.$socket.sendObj('printer.gcode.script', { script: gcode }, "socket/removeLoading", { name: 'babySteppingDown' });
             },
             sendBabySteppingUpFine() {
                 let gcode = "SET_GCODE_OFFSET Z_ADJUST=0.01"+(this.homed_axis === "xyz" ? " MOVE=1" : "");
                 this.$store.commit('socket/addLoading', { name: 'babySteppingUpFine' });
-                this.$store.commit('server/addEvent', gcode);
+                this.$store.commit('server/addEvent', { message: gcode, type: 'command' });
                 Vue.prototype.$socket.sendObj('printer.gcode.script', { script: gcode }, "socket/removeLoading", { name: 'babySteppingUpFine' });
             },
             sendBabySteppingUp() {
                 let gcode = "SET_GCODE_OFFSET Z_ADJUST=0.05"+(this.homed_axis === "xyz" ? " MOVE=1" : "");
                 this.$store.commit('socket/addLoading', { name: 'babySteppingUp' });
-                this.$store.commit('server/addEvent', gcode);
+                this.$store.commit('server/addEvent', { message: gcode, type: 'command' });
                 Vue.prototype.$socket.sendObj('printer.gcode.script', { script: gcode }, "socket/removeLoading", { name: 'babySteppingUp' });
             },
         }

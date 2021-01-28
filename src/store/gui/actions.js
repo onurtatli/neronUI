@@ -15,7 +15,7 @@ export default {
 	},
 
 	upload({ state, rootState }) {
-		let file = new File([JSON.stringify({ state })], 'gui.json');
+		let file = new File([JSON.stringify({ state })], '.mainsail.json');
 
 		let formData = new FormData();
 		formData.append('file', file);
@@ -26,9 +26,9 @@ export default {
 				headers: { 'Content-Type': 'multipart/form-data' }
 			}
 		).then(() => {
-			window.console.info("gui.json successfully uploaded")
+
 		}).catch(() => {
-			window.console.error("Error save gui.json!")
+			window.console.error("Error save .mainsail.json!")
 		});
 	},
 
@@ -41,4 +41,19 @@ export default {
 		commit('setGcodefilesShowHiddenFiles', data)
 		dispatch('upload')
 	},
+
+	addPreset({ commit, dispatch }, payload) {
+		commit("addPreset", payload)
+		dispatch("upload")
+	},
+
+	updatePreset({ commit, dispatch }, payload) {
+		commit("updatePreset", payload)
+		dispatch("upload")
+	},
+
+	deletePreset({ commit, dispatch }, payload) {
+		commit("deletePreset", payload)
+		dispatch("upload")
+	}
 }

@@ -8,9 +8,9 @@ export function getDefaultState() {
 			printername: "",
 		},
 		dashboard: {
-			boolWebcam: true,
+			boolWebcam: false,
 			boolTempchart: true,
-			boolConsole: false,
+			boolConsole: true,
 			hiddenMacros: [],
 			hiddenTempChart: [],
 		},
@@ -22,24 +22,25 @@ export function getDefaultState() {
 			flipY: false,
 			bool: false,
 		},
+		console: {
+			hideWaitTemperatures: true,
+			boolCustomFilters: false,
+			customFilters: "",
+		},
 		gcodefiles: {
 			countPerPage: 10,
-			showHiddenFiles: true,
-			showMetadata: {
-				size: true,
-				modified: true,
-				object_height: true,
-				layer_height: true,
-				filament_total: true,
-				estimated_time: true,
-				slicer: true,
-			}
+			showHiddenFiles: false,
+			hideMetadataColums: []
 		},
 		settings: {
 			configfiles: {
 				countPerPage: 10,
+				showHiddenFiles: false,
 			}
-		}
+		},
+		remotePrinters: [],
+		presets: [],
+		cooldownGcode: "TURN_OFF_HEATERS"
 	}
 }
 

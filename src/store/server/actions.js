@@ -1,30 +1,44 @@
 import Vue from 'vue'
 
 export default {
-	reset({ commit }) {
+	reset({ commit, dispatch }) {
 		commit('reset')
+		dispatch('power/reset')
+		dispatch('updateManager/reset')
 	},
 
 	init({ dispatch }) {
 		Vue.prototype.$socket.sendObj('server.info', {}, 'server/getInfo')
-		Vue.prototype.$socket.sendObj('server.gcode_store', {}, 'server/getGcodeStore')
-		//Vue.prototype.$socket.sendObj('server.files.get_directory', { path: '/config' }, 'getDirectoryRoot')
 
 		dispatch('printer/init', null, { root: true })
 	},
 
-	getInfo({ commit }, payload) {
+	getInfo({ commit, state, rootState }, payload) {
+		Vue.prototype.$socket.sendObj('server.gcode_store', {}, 'server/getGcodeStore')
+
+		if (state.plugins.length === 0) {
+			if (payload.plugins.includes("power") !== false)
+				Vue.prototype.$socket.sendObj('machine.device_power.devices', {}, 'server/power/getDevices')
+
+			if (payload.plugins.includes("update_manager") !== false)
+				Vue.prototype.$socket.sendObj('machine.update.status', {}, 'server/updateManager/getStatus')
+		}
+
+		if (state.registered_directories.length === 0 && 'registered_directories' in payload) {
+			for (const directory of payload.registered_directories) {
+				if (rootState.files.filetree.findIndex((element) => element.isDirectory && element.filename === directory) !== -1) {
+					Vue.prototype.$socket.sendObj('server.files.get_directory', { path: directory }, 'files/getDirectory')
+				}
+			}
+		}
+
 		commit('setData', payload)
 
-		if (payload.klippy_connected) {
-			Vue.prototype.$socket.sendObj('server.files.get_directory', { path: 'config' }, 'files/getDirectory');
-			Vue.prototype.$socket.sendObj('server.files.get_directory', { path: 'config_examples' }, 'files/getDirectory');
-
-			if (payload.plugins.includes("power") !== false) Vue.prototype.$socket.sendObj('machine.device_power.devices', {}, 'server/power/getDevices');
-		} else {
+		if (!payload.klippy_connected || payload.klippy_state === "startup") {
 			setTimeout(function(){
-				Vue.prototype.$socket.sendObj('server.info', {}, 'server/getInfo');
-			}, 1000);
+				Vue.prototype.$socket.sendObj('server.info', {}, 'server/getInfo')
+				Vue.prototype.$socket.sendObj('printer.info', {}, 'printer/getStateMessage')
+			}, 1000)
 		}
 	},
 

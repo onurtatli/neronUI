@@ -3,8 +3,21 @@ import { getDefaultState } from './index'
 
 export default {
 	reset(state) {
-		window.console.log("printer/reset");
-		Object.assign(state, getDefaultState())
+		const defaultState = getDefaultState()
+
+		for (const key of Object.keys(state)) {
+			if (!(key in defaultState) && key !== "tempHistory") {
+				delete state[key]
+			}
+		}
+
+		for (const [key, value] of Object.entries(defaultState)) {
+			Vue.set(state, key, value)
+		}
+
+		this.dispatch('socket/clearLoadings', null, { root: true })
+		if (this.state.server.plugins.includes("update_manager"))
+			Vue.prototype.$socket.sendObj('machine.update.status', { refresh: false }, 'server/updateManager/getStatus')
 	},
 
 	setData(state, payload) {
@@ -75,4 +88,10 @@ export default {
 
 		Vue.set(state, 'endstops', payload);
 	},
+
+	removeBedMeshProfile(state, payload) {
+		if ('bed_mesh '+payload.name in state.configfile.config) {
+			Object.assign(state.configfile.config['bed_mesh '+payload.name], { deleted: true })
+		}
+	}
 }

@@ -3,30 +3,36 @@ import Vue from 'vue'
 export default {
 	reset({ commit }) {
 		commit('reset')
-		//commit('tempHistory/reset')
+		commit('tempHistory/reset')
 	},
 
 	init() {
 		Vue.prototype.$socket.sendObj('printer.info', {}, 'printer/getInfo')
 
 		// only available with klipper is ready
-		Vue.prototype.$socket.sendObj('server.files.get_directory', { path: 'gcodes' }, 'files/getDirectory')
+		//Vue.prototype.$socket.sendObj('server.files.get_directory', { path: 'gcodes' }, 'files/getDirectory')
 	},
 
-	getInfo({ commit }, preload) {
+	getInfo({ commit }, payload) {
 		commit('server/setData', {
-			klippy_state: preload.state,
-			klippy_message: preload.state_message,
+			klippy_state: payload.state,
+			klippy_message: payload.state_message,
 		}, { root: true })
 
 		commit('setData', {
-			hostname: preload.hostname,
-			software_version: preload.software_version,
-			cpu_info: preload.cpu_info,
+			hostname: payload.hostname,
+			software_version: payload.software_version,
+			cpu_info: payload.cpu_info,
 		})
 
 		Vue.prototype.$socket.sendObj('printer.objects.list', {}, 'printer/getObjectsList')
 		Vue.prototype.$socket.sendObj('printer.gcode.help', {}, 'printer/getHelpList')
+	},
+
+	getStateMessage({ commit }, payload) {
+		commit('server/setData', {
+			klippy_message: payload.state_message,
+		}, { root: true })
 	},
 
 	getObjectsList({ commit }, payload) {
@@ -42,8 +48,8 @@ export default {
 			if (!blocklist.includes(nameSplit[0])) subscripts = {...subscripts, [key]: null }
 		}
 
-		if (subscripts !== {}) Vue.prototype.$socket.sendObj('printer.objects.subscribe', { objects: subscripts }, "printer/getData");
-		Vue.prototype.$socket.sendObj("server.temperature_store", {}, "printer/tempHistory/getHistory");
+		if (subscripts !== {}) Vue.prototype.$socket.sendObj('printer.objects.subscribe', { objects: subscripts }, "printer/getData")
+		Vue.prototype.$socket.sendObj("server.temperature_store", {}, "printer/tempHistory/getHistory")
 
 		commit('void', null, { root: true })
 	},
@@ -60,4 +66,9 @@ export default {
 		commit('socket/removeLoading', { name: 'queryEndstops' }, { root: true });
 		commit('setEndstopStatus', payload);
 	},
+
+	removeBedMeshProfile({ commit }, payload) {
+		commit('socket/removeLoading', { name: 'bedMeshRemove_'+payload.name }, { root: true })
+		commit('removeBedMeshProfile', payload)
+	}
 }

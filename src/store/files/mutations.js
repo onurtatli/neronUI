@@ -2,6 +2,7 @@ import Vue from 'vue'
 import { getDefaultState } from './index'
 import { findDirectory } from "@/plugins/helpers"
 import store from "@/store";
+import axios from "axios";
 
 export default {
 	reset(state) {
@@ -21,7 +22,7 @@ export default {
 			for (const [key, item] of Object.entries(parent)) {
 				if (
 					item.isDirectory &&
-					payload.dirs !== undefined &&
+					'dirs' in payload &&
 					payload.dirs.length > 0 &&
 					payload.dirs.findIndex(element => element.dirname === item.filename) < 0
 				) parent.splice(key, 1)
@@ -56,10 +57,21 @@ export default {
 					})
 				}
 
+				if (file.filename === ".mainsail.json" && payload.requestParams.path === "config") {
+					fetch('//'+store.state.socket.hostname+':'+store.state.socket.port+'/server/files/config/.mainsail.json?time='+Date.now())
+						.then(res => res.json()).then(file => {
+						this.commit('gui/setData', file, { root: true })
+						if (!store.state.socket.remoteMode) this.dispatch('farm/readStoredPrinters', {}, { root: true })
+					})
+				}
+
 				if (file.filename === "gui.json" && payload.requestParams.path === "config") {
 					fetch('//'+store.state.socket.hostname+':'+store.state.socket.port+'/server/files/config/gui.json?time='+Date.now())
 						.then(res => res.json()).then(file => {
-						this.commit('gui/setData', file, { root: true });
+						this.commit('gui/setData', file, { root: true })
+						this.dispatch('gui/upload', {}, { root: true })
+
+						axios.delete('//'+ store.state.socket.hostname+':'+store.state.socket.port +'/server/files/config/gui.json');
 					})
 				}
 			}

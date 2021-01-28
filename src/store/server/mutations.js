@@ -31,7 +31,8 @@ export default {
 			payload.gcode_store.forEach(message => {
 				state.events.push({
 					date: new Date(message.time * 1000),
-					message: message.message
+					message: message.message,
+					type: message.type
 				})
 			})
 		}
@@ -39,13 +40,18 @@ export default {
 
 	addEvent(state, payload) {
 		let message = payload
+		let type = 'response'
 
-		if (message.result !== undefined) message = message.result
-		else if (message.error !== undefined) message = message.error.message
+		if (typeof payload === 'object' && 'type' in payload) type = payload.type
+
+		if ('message' in payload) message = payload.message
+		else if ('result' in payload) message = payload.result
+		else if ('error' in payload) message = message.error.message
 
 		state.events.push({
 			date: new Date(),
-			message: message
+			message: message,
+			type: type,
 		})
 	},
 }

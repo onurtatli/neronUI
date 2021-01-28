@@ -1,30 +1,28 @@
+//import Vue from 'vue'
 import router from "../plugins/router";
 
 
 export default {
 
-
-    responseBedMeshLoad({commit}) {
-        commit('removeLoading', { name: 'bedMeshLoad' });
-    },
-
-    responseBedMeshClear({commit}) {
-        commit('removeLoading', { name: 'bedMeshClear' });
-    },
-
-    responseBedMeshCalibrate({commit}) {
-        commit('removeLoading', { name: 'bedMeshCalibrate' });
-    },
-
-    responseBedMeshSave({commit}) {
-        commit('removeLoading', { name: 'bedMeshSave' });
-    },
-
-    responseBedMeshRemove({commit}) {
-        commit('removeLoading', { name: 'bedMeshRemove' });
-    },
-
     switchToDashboard() {
         router.push("/");
     },
+
+    changePrinter({ dispatch, getters, state }, payload) {
+        const remoteMode = state.socket.remoteMode
+
+        dispatch('files/reset')
+        dispatch('gui/reset')
+        dispatch('printer/reset')
+        dispatch('server/reset')
+        dispatch('socket/reset')
+
+        const printerSocket = getters["farm/"+payload.printer+"/getSocketData"]
+
+        dispatch('socket/setSocket', {
+            hostname: printerSocket.hostname,
+            port: printerSocket.port,
+            remoteMode: remoteMode,
+        })
+    }
 }

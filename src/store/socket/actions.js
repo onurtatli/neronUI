@@ -1,11 +1,28 @@
+import Vue from 'vue'
+
 export default {
 	reset({ commit }) {
 		commit('reset')
 	},
 
+	setData({ commit }, payload) {
+		commit('setData', payload)
+	},
+
+	setSocket({ commit, state }, payload) {
+		commit('setData', payload)
+
+		if ('$socket' in Vue.prototype) {
+			Vue.prototype.$socket.close()
+			Vue.prototype.$socket.setUrl(state.protocol+"://"+payload.hostname+":"+payload.port+"/websocket")
+			Vue.prototype.$socket.connect()
+		}
+	},
+
 	onOpen ({ commit, dispatch }) {
 		commit('setConnected')
 		dispatch('server/init', null, { root: true })
+		commit('server/updateManager/setStatus', { busy: false}, { root: true })
 	},
 
 	onClose ({ commit }, event) {
@@ -23,16 +40,14 @@ export default {
 				break
 
 			case 'notify_gcode_response':
-				commit('server/addEvent', payload.params[0], { root: true })
+				commit('server/addEvent', Object.assign({ result: payload.params[0] }, { send: false }), { root: true })
 				break
 
 			case 'notify_klippy_ready':
-				window.console.log("ready bla bla")
 				commit('server/setKlippyReady', null, { root: true })
 				break
 
 			case 'notify_klippy_disconnected':
-				window.console.log("disconnected bla bla")
 				commit('server/setKlippyDisconnected', null, { root: true })
 				break
 
@@ -72,6 +87,14 @@ export default {
 				commit('server/power/setStatus', payload.params[0], { root: true })
 				break
 
+			case 'notify_update_response':
+				commit('server/updateManager/addUpdateResponse', payload.params[0], { root: true })
+				break
+
+			case 'notify_update_refreshed':
+				commit('server/updateManager/setStatus', payload.params[0], { root: true })
+				break
+
 			default:
 				if (payload.result !== "ok") {
 					if (
@@ -86,5 +109,14 @@ export default {
 
 	removeLoading({ commit }, payload) {
 		commit('removeLoading', payload)
-	}
+	},
+
+	clearLoadings({ commit }) {
+		commit('clearLoadings')
+	},
+
+	reportDebug({ commit }, payload) {
+		window.console.log(payload)
+		commit('void', {}, { root: true })
+	},
 }

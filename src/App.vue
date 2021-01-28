@@ -1,13 +1,16 @@
 <style>
     @import './assets/styles/fonts.css';
     @import './assets/styles/toastr.css';
-
     .button-min-width-auto {
         min-width: auto !important;
     }
-
     #page-container {
         max-width: 1400px;
+    }
+    #sidebarVersions {
+        position: absolute;
+        left: 0;
+        bottom: 0;
     }
 </style>
 
@@ -16,13 +19,14 @@
         <vue-headful :title="getTitle" />
         <v-navigation-drawer
             class="sidebar-wrapper" persistent v-model="drawer" enable-resize-watcher fixed app
-            :src="require('./assets/bg-navi.png')"
+            :src="sidebarBackground"
         >
             <div id="nav-header">
-                <img :src="require('./assets/neron-logo.svg')" />
+                <img :src="sidebarLogo" />
                 <v-toolbar-title>{{ printername !== "" ? printername : hostname }}</v-toolbar-title>
             </div>
             <ul class="navi" :expand="$vuetify.breakpoint.mdAndUp">
+                <printer-selecter></printer-selecter>
                 <li v-for="(category, index) in routes" :key="index" :prepend-icon="category.icon"
                     :class="[category.path !== '/' && currentPage.includes(category.path) ? 'active' : '', 'nav-item']"
                     :value="true"
@@ -31,15 +35,22 @@
                         slot="activator" class="nav-link" exact :to="category.path" @click.prevent
                         v-if="
                             (category.title === 'Webcam' && boolNaviWebcam) ||
-                            (category.title === 'Heightmap' && boolNaviHeightmap) ||
-                            (
+                            (category.title === 'Heightmap' && boolNaviHeightmap) || (
                                 category.title !== 'Webcam' &&
                                 category.title !== 'Heightmap' &&
                                 (klippy_state !== 'error' || category.alwaysShow)
                             )
                         ">
                         <v-icon>mdi-{{ category.icon }}</v-icon>
-                        <span class="nav-title">{{ category.title }}</span>
+                        <v-badge
+                            dot
+                            color="warning"
+                            style="top: -9px; left: -16px;"
+                            v-if="category.title === 'Settings' && isUpdateAvailable"
+                        ></v-badge>
+                        <span class="nav-title">
+                            {{ category.title }}
+                        </span>
                         <v-icon class="nav-arrow" v-if="category.children && category.children.length > 0">mdi-chevron-down</v-icon>
                     </router-link>
 
@@ -53,41 +64,24 @@
                     </ul>
                 </li>
             </ul>
+            <p id="sidebarVersions" class="mb-0 text-body-2 pl-3 pb-2">
+                v{{ getVersion }}<span class="" v-if="klipperVersion"> - {{ klipperVersion.substr(0, klipperVersion.lastIndexOf('-')) }}</span>
+            </p>
         </v-navigation-drawer>
 
         <v-app-bar app elevate-on-scroll>
             <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
             <v-spacer></v-spacer>
-            <v-btn color="primary" class="mr-5 d-none d-sm-flex" v-if="isConnected && save_config_pending" :loading="loadings.includes['topbarSaveConfig']" @click="clickSaveConfig">SAVE CONFIG</v-btn>
+            <input type="file" ref="fileUploadAndStart" accept=".gcode, .ufp" style="display: none" @change="uploadAndStart" />
+            <v-btn color="primary" class="mr-5 d-none d-sm-flex" v-if="isConnected && save_config_pending" :disabled="['printing', 'paused'].includes(printer_state)" :loading="loadings.includes['topbarSaveConfig']" @click="clickSaveConfig">SAVE CONFIG</v-btn>
+            <v-btn color="primary" class="mr-5 d-none d-sm-flex" v-if="isConnected && ['standby', 'complete'].includes(printer_state)" :loading="loadings.includes['btnUploadAndStart']" @click="btnUploadAndStart"><v-icon class="mr-2">mdi-file-upload</v-icon>Upload & Print</v-btn>
             <v-btn color="error" class="button-min-width-auto px-3" v-if="isConnected" :loading="loadings.includes['topbarEmergencyStop']" @click="clickEmergencyStop"><v-icon class="mr-sm-2">mdi-alert-circle-outline</v-icon><span class="d-none d-sm-flex">Emergency Stop</span></v-btn>
-            <v-menu bottom left :offset-y="true">
-                <template v-slot:activator="{ on, attrs }">
-                    <v-btn dark icon v-bind="attrs" v-on="on">
-                        <v-icon>mdi-dots-vertical</v-icon>
-                    </v-btn>
-                </template>
-
-                <v-list dense>
-                    <v-list-item link @click="doRestart()">
-                        <v-list-item-title><v-icon class="mr-3">mdi-sync</v-icon>Restart</v-list-item-title>
-                    </v-list-item>
-                    <v-list-item link @click="doFirmwareRestart()">
-                        <v-list-item-title><v-icon class="mr-3">mdi-sync</v-icon>FW Restart</v-list-item-title>
-                    </v-list-item>
-                    <v-divider></v-divider>
-                    <v-list-item link @click="doHostReboot()">
-                        <v-list-item-title><v-icon class="mr-3">mdi-power</v-icon>Reboot Host</v-list-item-title>
-                    </v-list-item>
-                    <v-list-item link @click="doHostShutdown()">
-                        <v-list-item-title><v-icon class="mr-3">mdi-power</v-icon>Shutdown Host</v-list-item-title>
-                    </v-list-item>
-                </v-list>
-            </v-menu>
+            <top-corner-menu></top-corner-menu>
         </v-app-bar>
 
         <v-main id="content">
             <v-scroll-y-transition>
-                <v-container fluid id="page-container" class="container px-sm-6 px-3 mx-auto">
+                <v-container fluid id="page-container" class="container px-3 px-sm-6 py-sm-6 mx-auto">
                     <keep-alive>
                         <router-view></router-view>
                     </keep-alive>
@@ -95,39 +89,74 @@
             </v-scroll-y-transition>
         </v-main>
 
-        <v-dialog v-model="overlayDisconnect" persistent width="300">
-            <v-card color="primary" dark >
-                <v-card-text class="pt-2">
-                    Connecting...
-                    <v-progress-linear indeterminate color="white" class="mb-0"></v-progress-linear>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+        <v-snackbar
+            :timeout="-1"
+            :value="true"
+            fixed
+            right
+            bottom
+            dark
+            v-model="uploadSnackbar.status"
+        >
+            <strong>Uploading {{ uploadSnackbar.filename }}</strong><br />
+            {{ Math.round(uploadSnackbar.percent) }} % @ {{ formatFilesize(Math.round(uploadSnackbar.speed)) }}/s<br />
+            <v-progress-linear class="mt-2" :value="uploadSnackbar.percent"></v-progress-linear>
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                    color="red"
+                    text
+                    v-bind="attrs"
+                    @click="cancelUpload"
+                    style="min-width: auto;"
+                >
+                    <v-icon class="0">mdi-close</v-icon>
+                </v-btn>
+            </template>
+        </v-snackbar>
 
-        <v-footer app class="d-block">
-            <span>v{{ getVersion }}</span>
-            <span class="float-right d-none d-sm-inline" v-if="version">{{ version }}</span>
-        </v-footer>
+        <select-printer-dialog v-if="remoteMode"></select-printer-dialog>
+        <connecting-dialog v-if="!remoteMode"></connecting-dialog>
+        <update-dialog></update-dialog>
     </v-app>
 </template>
 
 <script>
-    import routes from './routes';
-    import { mapState, mapGetters } from 'vuex';
-
+    import routes from './routes'
+    import { mapState, mapGetters } from 'vuex'
+    import TopCornerMenu from "@/components/TopCornerMenu"
+    import UpdateDialog from "@/components/UpdateDialog"
+    import ConnectingDialog from "@/components/ConnectingDialog";
+    import SelectPrinterDialog from "@/components/SelectPrinterDialog";
+    import PrinterSelecter from "@/components/PrinterSelecter"
+    import axios from "axios";
 export default {
     props: {
         source: String,
     },
     components: {
-
+        PrinterSelecter,
+        ConnectingDialog,
+        SelectPrinterDialog,
+        UpdateDialog,
+        TopCornerMenu,
     },
     data: () => ({
-        overlayDisconnect: true,
         drawer: null,
         activeClass: 'active',
-        routes: routes,
+        routes: routes.filter((element) => element.title !== "Printers"),
         boolNaviHeightmap: false,
+        uploadSnackbar: {
+            status: false,
+            filename: "",
+            percent: 0,
+            speed: 0,
+            total: 0,
+            cancelTokenSource: "",
+            lastProgress: {
+                time: 0,
+                loaded: 0
+            }
+        }
     }),
     created () {
         this.$vuetify.theme.dark = true;
@@ -140,10 +169,11 @@ export default {
         ...mapState({
             isConnected: state => state.socket.isConnected,
             hostname: state => state.printer.hostname,
-            version: state => state.printer.software_version,
+            apiHost: state => state.socket.hostname,
+            apiPort: state => state.socket.port,
             klippy_state: state => state.server.klippy_state,
+            printer_state: state => state.printer.print_stats.state,
             loadings: state => state.socket.loadings,
-
             toolhead: state => state.printer.toolhead,
             printername: state => state.gui.general.printername,
             virtual_sdcard: state => state.printer.virtual_sdcard,
@@ -151,14 +181,42 @@ export default {
             boolNaviWebcam: state => state.gui.webcam.bool,
             config: state => state.printer.configfile.config,
             save_config_pending: state => state.printer.configfile.save_config_pending,
+            klipperVersion: state => state.printer.software_version,
+            remoteMode: state => state.socket.remoteMode,
         }),
         ...mapGetters([
             'getTitle',
-            'getVersion'
+            'getVersion',
+            'server/updateManager/isUpdateAvailable',
         ]),
         print_percent: {
             get() {
-                return this.$store.getters["printer/getPrintPercent"];
+                return this.$store.getters["printer/getPrintPercent"]
+            }
+        },
+        defaultFavicons: {
+            get() {
+                return this.$store.getters["files/getFavicons"]
+            }
+        },
+        sidebarLogo: {
+            get() {
+                return this.$store.getters["files/getSidebarLogo"]
+            }
+        },
+        sidebarBackground: {
+            get() {
+                return this.$store.getters["files/getSidebarBackground"]
+            }
+        },
+        customStylesheet: {
+            get() {
+                return this.$store.getters["files/getCustomStylesheet"]
+            }
+        },
+        isUpdateAvailable: {
+            get() {
+                return this.$store.getters["server/updateManager/isUpdateAvailable"]
             }
         }
     },
@@ -168,31 +226,87 @@ export default {
             this.$socket.sendObj('printer.emergency_stop', {}, 'socket/removeLoading',{ name: 'topbarEmergencyStop' });
         },
         clickSaveConfig: function() {
-            this.$store.commit('server/addEvent', "SAVE_CONFIG");
+            this.$store.commit('server/addEvent', { message: "SAVE_CONFIG", type: "command" });
             this.$store.commit('socket/addLoading', { name: 'topbarSaveConfig' });
             this.$socket.sendObj('printer.gcode.script', { script: "SAVE_CONFIG" }, 'socket/removeLoading', { name: 'topbarSaveConfig' });
         },
-        doRestart: function() {
-            this.$store.commit('server/addEvent', "RESTART");
-            this.$socket.sendObj('printer.gcode.script', { script: "RESTART" });
+        btnUploadAndStart: function() {
+            this.$refs.fileUploadAndStart.click()
         },
-        doFirmwareRestart: function() {
-            this.$store.commit('server/addEvent', "FIRMWARE_RESTART");
-            this.$socket.sendObj('printer.gcode.script', { script: "FIRMWARE_RESTART" });
+        async uploadAndStart() {
+            if (this.$refs.fileUploadAndStart.files.length) {
+                this.$store.commit('socket/addLoading', { name: 'btnUploadAndStart' })
+                let successFiles = []
+                for (const file of this.$refs.fileUploadAndStart.files) {
+                    const result = await this.doUploadAndStart(file)
+                    successFiles.push(result)
+                }
+                this.$store.commit('socket/removeLoading', { name: 'gcodeUpload' })
+                for(const file of successFiles) {
+                    this.$toast.success("Upload of "+file+" successful!")
+                }
+                this.$refs.fileUploadAndStart.value = ''
+                this.$router.push("/");
+            }
         },
-        doHostReboot: function() {
-            this.$socket.sendObj('machine.reboot', { });
+        doUploadAndStart(file) {
+            let toast = this.$toast
+            let formData = new FormData()
+            let filename = file.name.replace(" ", "_")
+            this.uploadSnackbar.filename = filename
+            this.uploadSnackbar.status = true
+            this.uploadSnackbar.percent = 0
+            this.uploadSnackbar.speed = 0
+            this.uploadSnackbar.lastProgress.loaded = 0
+            this.uploadSnackbar.lastProgress.time = 0
+            formData.append('file', file, filename)
+            formData.append('print', true)
+            return new Promise(resolve => {
+                this.uploadSnackbar.cancelTokenSource = axios.CancelToken.source();
+                axios.post('//' + this.apiHost + ':' + this.apiPort + '/server/files/upload',
+                    formData, {
+                        cancelToken: this.uploadSnackbar.cancelTokenSource.token,
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                        onUploadProgress: (progressEvent) => {
+                            this.uploadSnackbar.percent = (progressEvent.loaded * 100) / progressEvent.total
+                            if (this.uploadSnackbar.lastProgress.time) {
+                                const time = progressEvent.timeStamp - this.uploadSnackbar.lastProgress.time
+                                const data = progressEvent.loaded - this.uploadSnackbar.lastProgress.loaded
+                                if (time) this.uploadSnackbar.speed = data / (time / 1000)
+                            }
+                            this.uploadSnackbar.lastProgress.time = progressEvent.timeStamp
+                            this.uploadSnackbar.lastProgress.loaded = progressEvent.loaded
+                            this.uploadSnackbar.total = progressEvent.total
+                        }
+                    }
+                ).then((result) => {
+                    this.uploadSnackbar.status = false
+                    resolve(result.data.result)
+                }).catch(() => {
+                    this.uploadSnackbar.status = false
+                    this.$store.commit('socket/removeLoading', { name: 'btnUploadAndStart' })
+                    toast.error("Cannot upload the file!")
+                })
+            })
         },
-        doHostShutdown: function() {
-            this.$socket.sendObj('machine.shutdown', { });
+        cancelUpload: function() {
+            this.uploadSnackbar.cancelTokenSource.cancel()
+            this.uploadSnackbar.status = false
+        },
+        formatFilesize(fileSizeInBytes) {
+            let i = -1
+            let byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB']
+            do {
+                fileSizeInBytes = fileSizeInBytes / 1024
+                i++
+            } while (fileSizeInBytes > 1024)
+            return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i]
         },
         drawFavicon(val) {
             let favicon16 = document.querySelector("link[rel*='icon'][sizes='16x16']")
             let favicon32 = document.querySelector("link[rel*='icon'][sizes='32x32']")
-
             if (val > 0 && val < 100) {
                 let faviconSize = 64;
-
                 let canvas = document.createElement('canvas');
                 canvas.width = faviconSize;
                 canvas.height = faviconSize;
@@ -200,8 +314,7 @@ export default {
                 let centerX = canvas.width / 2;
                 let centerY = canvas.height / 2;
                 let radius = 32;
-                let percent = val * 100;
-
+                let percent = (val * 100).toFixed(0);
                 /* draw the grey circle */
                 context.beginPath();
                 context.moveTo(centerX, centerY);
@@ -211,7 +324,6 @@ export default {
                 context.fill();
                 context.strokeStyle = "rgba(200, 208, 218, 0.66)";
                 context.stroke();
-
                 /* draw the green circle based on percentage */
                 let startAngle = 1.5 * Math.PI;
                 let endAngle = 0;
@@ -220,19 +332,18 @@ export default {
                 else if (percent > 25 && percent <= 50) endAngle = startAngle + (percent * unitValue);
                 else if (percent > 50 && percent <= 75) endAngle = startAngle + (percent * unitValue);
                 else if (percent > 75 && percent <= 100) endAngle = startAngle + (percent * unitValue);
-
                 context.beginPath();
                 context.moveTo(centerX, centerY);
                 context.arc(centerX, centerY, radius, startAngle, endAngle, false);
                 context.closePath();
                 context.fillStyle = "#e41313";
                 context.fill();
-
                 favicon16.href = canvas.toDataURL('image/png')
                 favicon32.href = canvas.toDataURL('image/png')
             } else {
-                favicon16.href = "/img/icons/favicon-16x16.png"
-                favicon32.href = "/img/icons/favicon-32x32.png"
+                const [favicon16Default, favicon32Default] = this.defaultFavicons
+                favicon16.href = favicon16Default
+                favicon32.href = favicon32Default
             }
         }
     },
@@ -248,8 +359,24 @@ export default {
         config() {
             this.boolNaviHeightmap = (typeof(this.config.bed_mesh) !== "undefined");
         },
-        isConnected(newVal) {
-            this.overlayDisconnect = !newVal;
+        customStylesheet(newVal) {
+            if (newVal !== null) {
+                let style = document.getElementById("customStylesheet")
+                if (!style) {
+                    style = document.createElement('link')
+                    style.id = "customStylesheet"
+                    style.type = "text/css"
+                    style.rel = "stylesheet"
+                }
+                style.href = newVal
+                document.head.appendChild(style)
+            } else {
+                let style = document.getElementById("customStylesheet")
+                if (style) style.remove()
+            }
+        },
+        defaultFavicons() {
+            this.drawFavicon(this.print_percent);
         }
     },
 }
@@ -266,7 +393,6 @@ export default {
         background: #000;
         opacity: .5;
     }*/
-
     #nav-header {
         text-align: center;
         border-bottom: 1px solid #ffffff40;
@@ -276,33 +402,27 @@ export default {
         align-items: center;
         justify-content: center;
     }
-
     #nav-header img {
         height: 40px;
         margin-right: 1em;
     }
-
     #nav-header .v-toolbar__title {
         font-size: 24px;
         vertical-align: middle;
     }
-
     .v-navigation-drawer__content {
         z-index: 10;
     }
-
     nav ul.navi {
         list-style: none;
         padding: 0;
         margin: 0;
     }
-
     nav ul.navi li.nav-item {
         padding: 0;
         margin: 0;
     }
-
-    nav ul.navi a.nav-link {
+    nav ul.navi .nav-link {
         display: block;
         color: white;
         border-radius: .5em;
@@ -315,70 +435,60 @@ export default {
         text-decoration: none;
         margin: 0.5em 1em;
     }
-
-    nav ul.navi a.nav-link:hover,
-    nav ul.navi li.active>a.nav-link,
-    nav ul.navi a.nav-link.router-link-active {
+    nav ul.navi .nav-link:hover,
+    nav ul.navi li.active>.nav-link,
+    nav ul.navi .nav-link.router-link-active {
         background: rgba(255,255,255,.3);
         opacity: 1;
     }
-
-    nav ul.navi li.active>a.nav-link i.nav-arrow ,
-    nav ul.navi a.nav-link.router-link-active i.nav-arrow {
+    nav ul.navi li.active>.nav-link i.nav-arrow ,
+    nav ul.navi .nav-link.router-link-active i.nav-arrow {
         transform: rotate(0);
     }
-
-    nav ul.navi a.nav-link>i.v-icon {
+    nav ul.navi .nav-link>i.v-icon {
         color: white;
         font-size: 1.7em;
         margin-right: .5em;
     }
-
-    nav ul.navi a.nav-link>span.nav-title {
+    nav ul.navi .nav-link>span.nav-title {
         line-height: 30px;
         font-weight: 600;
         text-transform: uppercase;
         white-space: nowrap;
         letter-spacing: 1px;
     }
-
-    nav ul.navi a.nav-link>i.nav-arrow {
+    nav ul.navi .nav-link>.nav-arrow {
         float: right;
         margin-top: 5px;
         margin-right: 0;
         transform: rotate(90deg);
     }
-
+    nav ul.navi .nav-link>.nav-arrow.right {
+        transform: rotate(-90deg);
+    }
     nav ul.navi>li>ul.child {
         display: none;
         list-style: none;
         padding: 0;
         margin: 0;
     }
-
     nav ul.navi>li>a.router-link-active+ul.child,
     nav ul.navi>li.active>ul.child {
         display: block;
     }
-
-    nav ul.navi>li>ul.child a.nav-link {
+    nav ul.navi>li>ul.child .nav-link {
         padding: 5px 15px 5px 15px;
     }
-
-    nav ul.navi>li>ul.child a.nav-link:hover,
-    nav ul.navi>li>ul.child a.nav-link.router-link-active {
+    nav ul.navi>li>ul.child .nav-link:hover,
+    nav ul.navi>li>ul.child .nav-link.router-link-active {
         background: rgba(255,255,255,.2);
     }
-
-    nav ul.navi>li>ul.child a.nav-link>span.nav-title {
+    nav ul.navi>li>ul.child .nav-link>span.nav-title {
         text-transform: capitalize;
         font-weight: 400;
         font-size: 14px;
     }
-
     .v-btn--absolute.v-btn--bottom, .v-btn--fixed.v-btn--bottom {
         bottom: 52px;
     }
-
-
 </style>

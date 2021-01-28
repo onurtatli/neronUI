@@ -2,19 +2,15 @@
     .v-data-table .v-data-table-header__icon {
         margin-left: 7px;
     }
-
     .v-data-table th {
         white-space: nowrap;
     }
-
     .v-data-table .file-list-cursor:hover {
         cursor: pointer;
     }
-
     .fileupload-card {
         position: relative;
     }
-
     .dragzone {
         display: table;
         position: absolute;
@@ -25,7 +21,6 @@
         transition: visibility 175ms, opacity 175ms;
         font: bold 42px Oswald, DejaVu Sans, Tahoma, sans-serif;
     }
-
     .dragzone:before {
         display: block;
         content: ' ';
@@ -34,14 +29,12 @@
         border: 3px dashed white;
         border-radius: 15px;
     }
-
     .dragzone .textnode {
         display: table-cell;
         text-align: center;
         vertical-align: middle;
         transition: font-size 175ms;
     }
-
     .minHeight36 {
         min-height: 36px;
     }
@@ -52,15 +45,15 @@
         <v-card class="fileupload-card my-3" @dragover="dragOverUpload" @dragleave="dragLeaveUpload" @drop.prevent.stop="dragDropUpload">
             <v-card-title>
                 G-Code Files
-                <v-spacer></v-spacer>
-                <input type="file" ref="fileUpload" style="display: none" @change="uploadFile" />
-                <v-item-group class="v-btn-toggle" name="controllers">
-                    <v-btn @click="clickUploadButton" title="Upload new Gcode" class="primary" :loading="loadings.includes('gcodeUpload')"><v-icon>mdi-upload</v-icon></v-btn>
-                    <v-btn @click="createDirectory" title="Create new Directory"><v-icon>mdi-folder-plus</v-icon></v-btn>
-                    <v-btn @click="refreshFileList" title="Refresh current Directory"><v-icon>mdi-refresh</v-icon></v-btn>
-                    <v-menu :offset-y="true" title="Setup current list">
+                <v-spacer class="d-none d-sm-block"></v-spacer>
+                <input type="file" ref="fileUpload" accept=".gcode, .ufp" style="display: none" multiple @change="uploadFile" />
+                <v-item-group class="v-btn-toggle my-5 my-sm-0 col-12 col-sm-auto px-0 py-0" name="controllers">
+                    <v-btn @click="clickUploadButton" title="Upload new Gcode" class="primary flex-grow-1" :loading="loadings.includes('gcodeUpload')"><v-icon>mdi-upload</v-icon></v-btn>
+                    <v-btn @click="createDirectory" title="Create new Directory" class="flex-grow-1"><v-icon>mdi-folder-plus</v-icon></v-btn>
+                    <v-btn @click="refreshFileList" title="Refresh current Directory" class="flex-grow-1"><v-icon>mdi-refresh</v-icon></v-btn>
+                    <v-menu :offset-y="true" :close-on-content-click="false" title="Setup current list">
                         <template v-slot:activator="{ on, attrs }">
-                            <v-btn class="" v-bind="attrs" v-on="on"><v-icon>mdi-cog</v-icon></v-btn>
+                            <v-btn class="flex-grow-1" v-bind="attrs" v-on="on"><v-icon class="">mdi-cog</v-icon></v-btn>
                         </template>
                         <v-list>
                             <v-list-item class="minHeight36">
@@ -93,9 +86,13 @@
                 :sort-by.sync="sortBy"
                 :sort-desc.sync="sortDesc"
                 :items-per-page.sync="countPerPage"
+                :footer-props="{
+                    itemsPerPageText: 'Files'
+                }"
                 item-key="name"
                 :search="search"
                 :custom-filter="advancedSearch"
+                mobile-breakpoint="0"
                 @pagination="refreshMetadata">
 
                 <template slot="items" slot-scope="props">
@@ -112,7 +109,7 @@
                         @click="clickRowGoBack"
                         @dragover="dragOverFilelist($event, {isDirectory: true, filename: '..'})" @dragleave="dragLeaveFilelist" @drop.prevent.stop="dragDropFilelist($event, {isDirectory: true, filename: '..'})"
                         >
-                        <td class=" "><v-icon>mdi-folder-upload</v-icon></td>
+                        <td class="pr-0 text-center" style="width: 32px;"><v-icon>mdi-folder-upload</v-icon></td>
                         <td class=" " colspan="8">..</td>
                     </tr>
                 </template>
@@ -128,10 +125,16 @@
                         @dragover="dragOverFilelist($event, item)" @dragleave="dragLeaveFilelist" @drop.prevent.stop="dragDropFilelist($event, item)"
                         :data-name="item.filename"
                         >
-                        <td class="pr-0" style="width: 32px;">
+                        <td class="pr-0 text-center" style="width: 32px;">
                             <v-icon v-if="item.isDirectory">mdi-folder</v-icon>
-                            <v-icon v-if="!item.isDirectory && !(item.thumbnails && item.thumbnails.length > 0)">mdi-file</v-icon>
-                            <img v-if="!item.isDirectory && item.thumbnails && item.thumbnails.length > 0" :src="'data:image/gif;base64,'+(item.thumbnails.length ? item.thumbnails[0].data : '--')"  />
+                            <v-icon v-if="!item.isDirectory && !(existsSmallThumbnail(item))">mdi-file</v-icon>
+                            <v-tooltip v-if="!item.isDirectory && existsSmallThumbnail(item) && existsBigThumbnail(item)" top>
+                                <template v-slot:activator="{ on, attrs }">
+                                    <img :src="'data:image/gif;base64,'+getSmallThumbnail(item)" width="32" height="32" v-bind="attrs" v-on="on"  />
+                                </template>
+                                <span><img :src="'data:image/gif;base64,'+getBigThumbnail(item)" width="250" /></span>
+                            </v-tooltip>
+                            <img v-if="!item.isDirectory && existsSmallThumbnail(item) && !existsBigThumbnail(item)" :src="'data:image/gif;base64,'+getSmallThumbnail(item)" width="32" height="32" />
                         </td>
                         <td class=" ">{{ item.filename }}</td>
                         <td class="text-no-wrap text-right" v-if="headers.filter(header => header.value === 'size')[0].visible">{{ item.isDirectory ? '--' : formatFilesize(item.size) }}</td>
@@ -170,13 +173,12 @@
                 </v-list-item>
             </v-list>
         </v-menu>
-        <v-dialog v-model="dialogPrintFile.show" max-width="400">
+        <v-dialog v-model="dialogPrintFile.show" :max-width="getThumbnailWidth(dialogPrintFile.item)">
             <v-card>
                 <v-img
                     contain
-                    v-if="dialogPrintFile.item.thumbnails && dialogPrintFile.item.thumbnails.find(element => element.width === 300 || element.width === 400)"
-                    :src="'data:image/gif;base64,'+(dialogPrintFile.item.thumbnails ? dialogPrintFile.item.thumbnails.find(element => element.width === 300 || element.width === 400).data : '')"
-                    :height="(dialogPrintFile.item.thumbnails ? dialogPrintFile.item.thumbnails.find(element => element.width === 400 || element.width === 300).height : '')+'px'"
+                    v-if="existsBigThumbnail(dialogPrintFile.item)"
+                    :src="'data:image/gif;base64,'+getBigThumbnail(dialogPrintFile.item)"
                 ></v-img>
                 <v-card-title class="headline">Start Job</v-card-title>
                 <v-card-text>Do you want to start {{ dialogPrintFile.item.filename }}?</v-card-text>
@@ -227,13 +229,36 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-snackbar
+            :timeout="-1"
+            :value="true"
+            fixed
+            right
+            bottom
+            dark
+            v-model="uploadSnackbar.status"
+        >
+            <span v-if="uploadSnackbar.max > 1" class="mr-1">({{ uploadSnackbar.number }}/{{ uploadSnackbar.max }})</span><strong>Uploading {{ uploadSnackbar.filename }}</strong><br />
+            {{ Math.round(uploadSnackbar.percent) }} % @ {{ formatFilesize(Math.round(uploadSnackbar.speed)) }}/s<br />
+            <v-progress-linear class="mt-2" :value="uploadSnackbar.percent"></v-progress-linear>
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                    color="red"
+                    text
+                    v-bind="attrs"
+                    @click="cancelUpload"
+                    style="min-width: auto;"
+                >
+                    <v-icon class="0">mdi-close</v-icon>
+                </v-btn>
+            </template>
+        </v-snackbar>
     </div>
 </template>
 <script>
-    import { mapState, mapGetters } from 'vuex';
-    import axios from 'axios';
-    import { findDirectory } from "@/plugins/helpers";
-
+    import { mapState, mapGetters } from 'vuex'
+    import axios from 'axios'
+    import { findDirectory } from "@/plugins/helpers"
     export default {
         data () {
             return {
@@ -261,7 +286,7 @@
                     item: {}
                 },
                 headers: [
-                    { text: '',               value: '',                align: 'left',  configable: false,  visible: true },
+                    { text: '',               value: '',                align: 'left',  configable: false,  visible: true, filterable: false },
                     { text: 'Name',           value: 'filename',        align: 'left',  configable: false,  visible: true },
                     { text: 'Filesize',       value: 'size',            align: 'right', configable: true,   visible: true },
                     { text: 'Last modified',  value: 'modified',        align: 'right', configable: true,   visible: true },
@@ -272,7 +297,6 @@
                     { text: 'Slicer',         value: 'slicer',          align: 'right', configable: true,   visible: true },
                 ],
                 options: {
-
                 },
                 contextMenu: {
                     shown: false,
@@ -294,7 +318,21 @@
                 },
                 input_rules: [
                     value => value.indexOf(" ") === -1 || 'Name contain spaces!'
-                ]
+                ],
+                uploadSnackbar: {
+                    status: false,
+                    filename: "",
+                    percent: 0,
+                    speed: 0,
+                    total: 0,
+                    number: 0,
+                    max: 0,
+                    cancelTokenSource: "",
+                    lastProgress: {
+                        time: 0,
+                        loaded: 0
+                    }
+                }
             }
         },
         computed: {
@@ -303,24 +341,23 @@
                 hostname: state => state.socket.hostname,
                 port: state => state.socket.port,
                 loadings: state => state.socket.loadings,
-
                 displayMetadata: state => state.gui.gcodefiles.showMetadata,
             }),
             ...mapGetters([
                 'is_printing'
             ]),
             configHeaders() {
-                return this.headers.filter(header => header.configable === true);
+                return this.headers.filter(header => header.configable === true)
             },
             filteredHeaders() {
-                return this.headers.filter(header => header.visible === true);
+                return this.headers.filter(header => header.visible === true)
             },
             showHiddenFiles: {
                 get: function() {
-                    return this.$store.state.gui.gcodefiles.showHiddenFiles;
+                    return this.$store.state.gui.gcodefiles.showHiddenFiles
                 },
                 set: function(newVal) {
-                    return this.$store.dispatch("gui/setSettings", { gcodefiles: { showHiddenFiles: newVal } });
+                    return this.$store.dispatch("gui/setSettings", { gcodefiles: { showHiddenFiles: newVal } })
                 }
             },
             countPerPage: {
@@ -328,48 +365,97 @@
                     return this.$store.state.gui.gcodefiles.countPerPage
                 },
                 set: function(newVal) {
-                    return this.$store.dispatch("gui/setSettings", { gcodefiles: { countPerPage: newVal } });
+                    return this.$store.dispatch("gui/setSettings", { gcodefiles: { countPerPage: newVal } })
+                }
+            },
+            hideMetadataColums: {
+                get: function() {
+                    return this.$store.state.gui.gcodefiles.hideMetadataColums
+                },
+                set: function(newVal) {
+                    return this.$store.dispatch("gui/setSettings", { gcodefiles: { hideMetadataColums: newVal } })
                 }
             },
         },
         created() {
             this.loadPath()
         },
+        mounted() {
+            this.hideMetadataColums.forEach((key) => {
+                let headerElement = this.headers.find(element => element.value === key)
+                if (headerElement) headerElement.visible = false
+            })
+        },
         methods: {
-            uploadFile: function() {
+            async uploadFile() {
                 if (this.$refs.fileUpload.files.length) {
-                    this.doUploadFile(this.$refs.fileUpload.files[0]).finally(() => {
-                        this.$refs.fileUpload.value = ''
-                    })
+                    this.$store.commit('socket/addLoading', { name: 'gcodeUpload' })
+                    let successFiles = []
+                    this.uploadSnackbar.number = 0
+                    this.uploadSnackbar.max = this.$refs.fileUpload.files.length
+                    for (const file of this.$refs.fileUpload.files) {
+                        this.uploadSnackbar.number++
+                        const result = await this.doUploadFile(file)
+                        successFiles.push(result)
+                    }
+                    this.$store.commit('socket/removeLoading', { name: 'gcodeUpload' })
+                    for(const file of successFiles) {
+                        this.$toast.success("Upload of "+file+" successful!")
+                    }
+                    this.$refs.fileUpload.value = ''
                 }
             },
             doUploadFile: function(file) {
-                let toast = this.$toast;
-                let formData = new FormData();
-                let filename = file.name.replace(" ", "_");
-
-                formData.append('file', file, (this.currentPath+"/"+filename).substring(7));
-                this.$store.commit('socket/addLoading', { name: 'gcodeUpload' });
-
-                return axios.post('//' + this.hostname + ':' + this.port + '/server/files/upload',
-                    formData, { headers: { 'Content-Type': 'multipart/form-data' } }
-                ).then((result) => {
-                    this.$store.commit('socket/removeLoading', { name: 'gcodeUpload' });
-                    toast.success("Upload of "+result.data.result+" successful!");
-                }).catch(() => {
-                    this.$store.commit('socket/removeLoading', { name: 'gcodeUpload' });
-                    toast.error("Cannot upload the file!");
-                });
+                let toast = this.$toast
+                let formData = new FormData()
+                let filename = file.name.replace(" ", "_")
+                this.uploadSnackbar.filename = filename
+                this.uploadSnackbar.status = true
+                this.uploadSnackbar.percent = 0
+                this.uploadSnackbar.speed = 0
+                this.uploadSnackbar.lastProgress.loaded = 0
+                this.uploadSnackbar.lastProgress.time = 0
+                formData.append('file', file, (this.currentPath+"/"+filename).substring(7))
+                return new Promise(resolve => {
+                    this.uploadSnackbar.cancelTokenSource = axios.CancelToken.source();
+                    axios.post('//' + this.hostname + ':' + this.port + '/server/files/upload',
+                        formData, {
+                            cancelToken: this.uploadSnackbar.cancelTokenSource.token,
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                            onUploadProgress: (progressEvent) => {
+                                this.uploadSnackbar.percent = (progressEvent.loaded * 100) / progressEvent.total
+                                if (this.uploadSnackbar.lastProgress.time) {
+                                    const time = progressEvent.timeStamp - this.uploadSnackbar.lastProgress.time
+                                    const data = progressEvent.loaded - this.uploadSnackbar.lastProgress.loaded
+                                    if (time) this.uploadSnackbar.speed = data / (time / 1000)
+                                }
+                                this.uploadSnackbar.lastProgress.time = progressEvent.timeStamp
+                                this.uploadSnackbar.lastProgress.loaded = progressEvent.loaded
+                                this.uploadSnackbar.total = progressEvent.total
+                            }
+                        }
+                    ).then((result) => {
+                        this.uploadSnackbar.status = false
+                        resolve(result.data.result)
+                    }).catch(() => {
+                        this.uploadSnackbar.status = false
+                        this.$store.commit('socket/removeLoading', { name: 'gcodeUpload' })
+                        toast.error("Cannot upload the file!")
+                    })
+                })
             },
             clickUploadButton: function() {
                 this.$refs.fileUpload.click()
+            },
+            cancelUpload: function() {
+                this.uploadSnackbar.cancelTokenSource.cancel()
+                this.uploadSnackbar.status = false
             },
             refreshFileList: function() {
                 this.$socket.sendObj('server.files.get_directory', { path: this.currentPath }, 'files/getDirectory')
             },
             formatDate(date) {
                 let tmp2 = new Date(date)
-
                 return tmp2.toLocaleString().replace(',', '')
             },
             formatFilesize(fileSizeInBytes) {
@@ -379,32 +465,25 @@
                     fileSizeInBytes = fileSizeInBytes / 1024
                     i++
                 } while (fileSizeInBytes > 1024)
-
                 return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i]
             },
             formatPrintTime(totalSeconds) {
                 if (totalSeconds) {
                     let output = ""
-
                     let days = Math.floor(totalSeconds / (3600 * 24))
                     if (days) {
                         totalSeconds %= (3600 * 24)
                         output += days+"d"
                     }
-
                     let hours = Math.floor(totalSeconds / 3600)
                     totalSeconds %= 3600
                     if (hours) output += " "+hours+"h"
-
                     let minutes = Math.floor(totalSeconds / 60)
                     if (minutes) output += " "+minutes+"m"
-
                     let seconds = totalSeconds % 60
                     if (seconds) output += " "+seconds.toFixed(0)+"s"
-
                     return output
                 }
-
                 return '--'
             },
             showContextMenu (e, item) {
@@ -446,17 +525,10 @@
                 this.$socket.sendObj('server.files.move', {
                     source: this.currentPath+"/"+this.dialogRenameDirectory.item.filename,
                     dest: this.currentPath+"/"+this.dialogRenameDirectory.newName
-                }, 'files/getFileMove');
+                }, 'files/getMove');
             },
             removeFile() {
-                let filename = (this.currentPath+"/"+this.contextMenu.item.filename);
-                axios.delete(
-                    '//'+ this.hostname + ':' + this.port +'/server/files/' + encodeURI(filename)
-                ).then((result) => {
-                    this.$toast.success(result.data.result+" successfully deleted.");
-                }).catch(() => {
-                    this.$toast.error("Error! Cannot delete file.");
-                });
+                this.$socket.sendObj('server.files.delete_file', { path: this.currentPath+"/"+this.contextMenu.item.filename }, 'files/getDeleteFile');
             },
             createDirectory: function() {
                 this.dialogCreateDirectory.name = "";
@@ -500,7 +572,6 @@
                 if (!this.draggingFile.status) {
                     e.preventDefault();
                     e.stopPropagation();
-
                     this.dropzone.visibility = 'visible';
                     this.dropzone.opacity = 1;
                 }
@@ -509,7 +580,6 @@
                 if (!this.draggingFile.status) {
                     e.preventDefault();
                     e.stopPropagation();
-
                     this.dropzone.visibility = 'hidden';
                     this.dropzone.opacity = 0;
                 }
@@ -517,10 +587,8 @@
             async dragDropUpload(e) {
                 if (!this.draggingFile.status) {
                     e.preventDefault();
-
                     this.dropzone.visibility = 'hidden';
                     this.dropzone.opacity = 0;
-
                     if (!this.is_printing && e.dataTransfer.files.length) {
                         await this.doUploadFile(e.dataTransfer.files[0]);
                     }
@@ -540,7 +608,6 @@
                 if (this.draggingFile.status) {
                     e.preventDefault();
                     //e.stopPropagation();
-
                     if (row.isDirectory) {
                         e.target.parentElement.style.backgroundColor = '#43A04720';
                     }
@@ -550,7 +617,6 @@
                 if (this.draggingFile.status) {
                     e.preventDefault();
                     e.stopPropagation();
-
                     e.target.parentElement.style.backgroundColor = 'transparent';
                 }
             },
@@ -558,22 +624,19 @@
                 if (this.draggingFile.status) {
                     e.preventDefault();
                     e.target.parentElement.style.backgroundColor = 'transparent';
-
                     let dest = "";
                     if (row.filename === '..') {
                       dest = this.currentPath.substring(0, this.currentPath.lastIndexOf("/") + 1)+this.draggingFile.item.filename;
                     } else dest = this.currentPath+"/"+row.filename+"/"+this.draggingFile.item.filename;
-
                     this.$socket.sendObj('server.files.move', {
                         source: this.currentPath+"/"+this.draggingFile.item.filename,
                         dest: dest
-                    }, 'getPostFileMove');
+                    }, 'files/getMove');
                 }
             },
             sortFiles(items, sortBy, sortDesc) {
                 sortBy = sortBy.length ? sortBy[0] : 'filename';
                 sortDesc = sortDesc[0];
-
                 if (items !== undefined) {
                     // Sort by index
                     items.sort(function(a, b) {
@@ -596,10 +659,8 @@
                         }
                         return a[sortBy] - b[sortBy];
                     });
-
                     // Deal with descending order
                     if (sortDesc) items.reverse();
-
                     // Then make sure directories come first
                     items.sort((a, b) => (a.isDirectory === b.isDirectory) ? 0 : (a.isDirectory ? -1 : 1));
                 }
@@ -613,7 +674,6 @@
                         this.$socket.sendObj("server.files.metadata", { filename: filename }, "files/getMetadata");
                     }
                 }
-
             },
             advancedSearch: function(value, search) {
                 return value != null &&
@@ -624,10 +684,47 @@
             changeMetadataVisible: function(name) {
                 if (this.headers.filter(header => header.value === name).length) {
                     let value = this.headers.filter(header => header.value === name)[0].visible;
-
                     this.$store.dispatch("gui/setGcodefilesMetadata", {name: name, value: value});
                 }
             },
+            existsSmallThumbnail(item) {
+                return (
+                    'thumbnails' in item &&
+                    item.thumbnails !== undefined &&
+                    item.thumbnails.findIndex(thumb => thumb.width >= 32 && thumb.width <= 64 && thumb.height >= 32 && thumb.height <= 64) !== -1
+                )
+            },
+            getSmallThumbnail(item) {
+                if (this.existsSmallThumbnail(item)) {
+                    const thumbnail = item.thumbnails.find(thumb =>
+                        thumb.width >= 32 && thumb.width <= 64 &&
+                        thumb.height >= 32 && thumb.height <= 64
+                    )
+                    if (thumbnail) return thumbnail.data
+                }
+                return ""
+            },
+            existsBigThumbnail(item) {
+                return (
+                    'thumbnails' in item &&
+                    item.thumbnails !== undefined &&
+                    item.thumbnails.findIndex(thumb => thumb.width >= 300 && thumb.width <= 400) !== -1
+                )
+            },
+            getBigThumbnail(item) {
+                if (this.existsBigThumbnail(item)) {
+                    const thumbnail = item.thumbnails.find(thumb => thumb.width >= 300 && thumb.width <= 400)
+                    if (thumbnail) return thumbnail.data
+                }
+                return ""
+            },
+            getThumbnailWidth(item) {
+                if (this.existsBigThumbnail(item)) {
+                    const thumbnail = item.thumbnails.find(thumb => thumb.width >= 300 && thumb.width <= 400)
+                    if (thumbnail) return thumbnail.width
+                }
+                return 400
+            }
         },
         watch: {
             filetree: {
@@ -635,7 +732,6 @@
                 handler(newVal) {
                     let dirArray = this.currentPath.split("/");
                     this.files = findDirectory(newVal, dirArray);
-
                     if (!this.showHiddenFiles) {
                         this.files = this.files.filter(file => file.filename !== "thumbs" && file.filename.substr(0, 1) !== ".");
                     }
@@ -645,7 +741,6 @@
                 handler(newVal) {
                     let dirArray = newVal.split("/");
                     this.files = findDirectory(this.filetree, dirArray);
-
                     if (!this.showHiddenFiles) {
                         this.files = this.files.filter(file => file.filename !== "thumbs" && file.filename.substr(0, 1) !== ".");
                     }
@@ -654,16 +749,34 @@
             displayMetadata: {
                 deep: true,
                 handler(newVal) {
-                    Object.entries(newVal).forEach(value => {
-                        if (this.headers.filter(header => header.value === value[0]).length) {
-                            this.headers.filter(header => header.value === value[0])[0].visible = value[1];
-                        }
-                    });
+                    if (newVal !== undefined && typeof(newVal) === 'object') {
+                        Object.entries(newVal).forEach(value => {
+                            if (this.headers.filter(header => header.value === value[0]).length) {
+                                this.headers.filter(header => header.value === value[0])[0].visible = value[1];
+                            }
+                        })
+                    }
                 }
             },
             showHiddenFiles: function() {
                 this.loadPath();
+            },
+            hideMetadataColums: function(newVal) {
+                newVal.forEach((key) => {
+                    let headerElement = this.headers.find(element => element.value === key)
+                    if (headerElement) headerElement.visible = false
+                })
             }
+            /*headers: {
+                deep: true,
+                handler(newVal) {
+                    window.console.log(newVal)
+                    newVal.forEach((element) => {
+                        if (element.visible && this.hideMetadataColums.includes(element.value)) this.hideMetadataColums.splice(this.hideMetadataColums.indexOf(element.value), 1)
+                        else if (!element.visible && !this.hideMetadataColums.includes(element.value)) this.hideMetadataColums.push(element.value)
+                    })
+                }
+            }*/
         }
     }
 </script>

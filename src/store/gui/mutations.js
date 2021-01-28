@@ -13,7 +13,11 @@ export default {
 		if ("gui" in payload) payload = payload.gui
 
 		Object.entries(payload).forEach(([key, value]) => {
-			Vue.set(state, key, value)
+			if (typeof value === 'object') {
+				Object.entries(value).forEach(([key2, value2]) => {
+					Vue.set(state[key], key2, value2)
+				})
+			} else Vue.set(state, key, value)
 		})
 	},
 
@@ -30,10 +34,36 @@ export default {
 	},
 
 	setGcodefilesMetadata(state, data) {
-		Vue.set(state.gcodefiles.showMetadata, data.name, data.value)
+		if (data.value && state.gcodefiles.hideMetadataColums.includes(data.name)) {
+			state.gcodefiles.hideMetadataColums.splice(state.gcodefiles.hideMetadataColums.indexOf(data.name), 1)
+		} else if (!data.value && !state.gcodefiles.hideMetadataColums.includes(data.name)) {
+			state.gcodefiles.hideMetadataColums.push(data.name)
+		}
 	},
 
 	setGcodefilesShowHiddenFiles(state, value) {
 		Vue.set(state.gcodefiles, "showHiddenFiles", value)
 	},
+
+	addPreset(state, payload) {
+		state.presets.push({
+			name: payload.name,
+			gcode: payload.gcode,
+			values: payload.values
+		})
+	},
+
+	updatePreset(state, payload) {
+		if (state.presets[payload.index]) {
+			Vue.set(state.presets[payload.index], 'name', payload.name)
+			Vue.set(state.presets[payload.index], 'gcode', payload.gcode)
+			Vue.set(state.presets[payload.index], 'values', payload.values)
+		}
+	},
+
+	deletePreset(state, payload) {
+		if (state.presets[payload.index]) {
+			state.presets.splice(payload.index, 1)
+		}
+	}
 }

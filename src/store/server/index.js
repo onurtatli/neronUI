@@ -4,6 +4,7 @@ import getters from './getters'
 
 // import modules
 import power from './power'
+import updateManager from './updateManager'
 
 // create getDefaultState
 export function getDefaultState() {
@@ -12,6 +13,8 @@ export function getDefaultState() {
 		klippy_state: "",
 		klippy_message: "",
 		plugins: [],
+		failed_plugins: [],
+		registered_directories: [],
 		events: [],
 	}
 }
@@ -26,6 +29,7 @@ export default {
 	actions,
 	mutations,
 	modules: {
-		power
+		power,
+		updateManager,
 	}
 }

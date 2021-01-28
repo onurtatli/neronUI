@@ -1,32 +1,32 @@
 <style>
-    .settings_dashboard_switch .v-messages {
-        display: none;
-    }
+
 </style>
 
 <template>
     <v-card>
         <v-toolbar flat dense >
             <v-toolbar-title>
-                <span class="subheading"><v-icon left>mdi-view-dashboard</v-icon>Dashbaord</span>
+                <span class="subheading"><v-icon left>mdi-view-dashboard</v-icon>Dashboard</span>
             </v-toolbar-title>
         </v-toolbar>
-        <v-card-text class="py-3">
-            <v-row>
-                <v-col class="py-0">
-                    <v-switch v-model="boolShowWebcamOnDashboard" label="Webcam" class="settings_dashboard_switch mt-0"></v-switch>
-                </v-col>
-            </v-row>
-            <v-row>
-                <v-col class="py-0">
-                    <v-switch v-model="boolShowTempchartOnDashboard" label="Tempchart" class="settings_dashboard_switch mt-0"></v-switch>
-                </v-col>
-            </v-row>
-            <v-row>
-                <v-col class="py-0">
-                    <v-switch v-model="boolShowConsoleOnDashboard" label="Console" class="settings_dashboard_switch mt-0"></v-switch>
-                </v-col>
-            </v-row>
+        <v-card-text>
+            <v-container px-0 py-0>
+                <v-row>
+                    <v-col class="py-2">
+                        <v-switch v-model="boolShowWebcamOnDashboard" label="Webcam" hide-details class="mt-0"></v-switch>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col class="py-2">
+                        <v-switch v-model="boolShowTempchartOnDashboard" label="Tempchart" hide-details class="mt-0"></v-switch>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col class="py-2">
+                        <v-switch v-model="boolShowConsoleOnDashboard" label="Console" hide-details class="mt-0"></v-switch>
+                    </v-col>
+                </v-row>
+            </v-container>
         </v-card-text>
     </v-card>
 </template>

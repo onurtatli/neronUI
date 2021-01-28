@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Necessary Configuration
-nav_order: 4
+nav_order: 5
 has_children: false
 permalink: /necessary-configuration
 ---
@@ -13,7 +13,7 @@ NEronUI requires a minimum configuration to function properly. It should give yo
 This allows gcode file uploads.
 ```yaml
 [virtual_sdcard]
-path: ~/sdcard
+path: ~/gcode_files
 ```
 
 ### display_status
